@@ -1,159 +1,208 @@
-'use client'
+"use client"
 
-import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { initializeApp } from 'firebase/app'
-import { getAuth, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut } from 'firebase/auth'
+import { useState, useEffect } from "react"
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAwRDKHCSqzdltqIzi5win8D7BEqmdHFVg",
-  authDomain: "saibsa-event-2026.firebaseapp.com",
-  projectId: "saibsa-event-2026",
-  messagingSenderId: "521327539639",
-  appId: "1:521327539639:web:12adf3dc13abae9cd9a432"
-}
-
-const app = initializeApp(firebaseConfig)
-const auth = getAuth(app)
+const API_URL =
+  "https://script.google.com/macros/s/AKfycbzz6A2fpCBdMDgY0eSTiWtykNGUyZvAqe8GK_Xkr9ZMApEvmHUtM6PyKjY4QpXkTVUv/exec"
 
 export default function Home() {
-  const [user, setUser] = useState(null)
-  const [page, setPage] = useState('dashboard')
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    school: '',
-    phone: '',
-    category: ''
-  })
+  const [page, setPage] = useState("dashboard")
+  const [sessions, setSessions] = useState([])
+  const [announcements, setAnnouncements] = useState([])
+  const [profilePic, setProfilePic] = useState(null)
 
   useEffect(() => {
-    if (isSignInWithEmailLink(auth, window.location.href)) {
-      let email = window.localStorage.getItem('emailForSignIn')
-      if (!email) email = window.prompt('Confirm your email')
-      signInWithEmailLink(auth, email, window.location.href)
-        .then((result) => {
-          window.localStorage.removeItem('emailForSignIn')
-          setUser(result.user)
-        })
-    }
+    fetch(API_URL + "?type=sessions")
+      .then(res => res.json())
+      .then(data => setSessions(data))
+
+    fetch(API_URL + "?type=announcements")
+      .then(res => res.json())
+      .then(data => setAnnouncements(data))
   }, [])
 
-  const sendOTP = async () => {
-    const actionCodeSettings = {
-      url: window.location.href,
-      handleCodeInApp: true
-    }
-    await sendSignInLinkToEmail(auth, formData.email, actionCodeSettings)
-    window.localStorage.setItem('emailForSignIn', formData.email)
-    alert('OTP sent to email!')
+  const registerSession = async (id) => {
+    await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "registerSession", id }),
+    })
+    alert("Registered successfully!")
+    window.location.reload()
   }
-
-  const logout = async () => {
-    await signOut(auth)
-    setUser(null)
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black flex items-center justify-center p-6">
-        <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} className="bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl p-10 w-full max-w-lg text-white">
-          <h1 className="text-3xl font-bold mb-6 text-center tracking-wide">SAIBSA 2026 Registration</h1>
-          <div className="space-y-4">
-            <input placeholder="Full Name" className="w-full p-3 rounded-xl bg-white/20 placeholder-white/70 focus:outline-none" onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-            <input placeholder="Email" className="w-full p-3 rounded-xl bg-white/20 placeholder-white/70 focus:outline-none" onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
-            <input placeholder="School / Organisation" className="w-full p-3 rounded-xl bg-white/20 placeholder-white/70 focus:outline-none" onChange={(e) => setFormData({ ...formData, school: e.target.value })} />
-            <input placeholder="Phone" className="w-full p-3 rounded-xl bg-white/20 placeholder-white/70 focus:outline-none" onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
-            <select className="w-full p-3 rounded-xl bg-white/20 text-white focus:outline-none" onChange={(e) => setFormData({ ...formData, category: e.target.value })}>
-              <option value="">Select Category</option>
-              <option value="PYP">PYP</option>
-              <option value="MYP">MYP</option>
-              <option value="DP">DP</option>
-              <option value="Leadership">Leadership</option>
-            </select>
-            <button onClick={sendOTP} className="w-full py-3 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl font-semibold hover:scale-105 transition-transform">
-              Send OTP
-            </button>
-          </div>
-        </motion.div>
-      </div>
-    )
-  }
-
-  const NavButton = ({ name }) => (
-    <button onClick={() => setPage(name)} className={`px-4 py-2 rounded-xl transition ${page === name ? 'bg-white text-black' : 'bg-white/10 hover:bg-white/20'}`}>
-      {name.charAt(0).toUpperCase() + name.slice(1)}
-    </button>
-  )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white">
-      <nav className="flex flex-wrap gap-3 justify-center p-6 border-b border-white/10">
-        <NavButton name="dashboard" />
-        <NavButton name="sessions" />
-        <NavButton name="announcements" />
-        <NavButton name="team" />
-        <NavButton name="profile" />
-      </nav>
+    <div style={styles.container}>
+      {/* NAVBAR */}
+      <div style={styles.navbar}>
+        <h2>SAIBSA 2026</h2>
+        <div>
+          <button onClick={() => setPage("dashboard")}>Dashboard</button>
+          <button onClick={() => setPage("sessions")}>Sessions</button>
+          <button onClick={() => setPage("announcements")}>Announcements</button>
+          <button onClick={() => setPage("team")}>Team</button>
+          <button onClick={() => setPage("profile")}>Profile</button>
+        </div>
+      </div>
 
-      <div className="p-8 max-w-6xl mx-auto">
-        {page === 'dashboard' && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <div className="rounded-3xl overflow-hidden shadow-2xl mb-8">
-              <img src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b" className="w-full h-72 object-cover" />
-            </div>
-            <div className="bg-white/10 p-8 rounded-3xl backdrop-blur-xl border border-white/20">
-              <h2 className="text-2xl font-bold mb-4">Event Overview</h2>
-              <p className="text-white/80 leading-relaxed">
-                Welcome to SAIBSA 2026. Explore sessions, connect with IB educators,
-                and experience collaborative leadership across PYP, MYP, DP, and Leadership strands.
-              </p>
-            </div>
-          </motion.div>
-        )}
+      {/* DASHBOARD */}
+      {page === "dashboard" && (
+        <div style={styles.page}>
+          <img
+            src="https://images.unsplash.com/photo-1509062522246-3755977927d7"
+            style={styles.banner}
+          />
+          <h1>Welcome to SAIBSA 2026</h1>
+          <p>
+            An inspiring IB leadership and collaboration event bringing together
+            PYP, MYP, DP and educational leaders.
+          </p>
+        </div>
+      )}
 
-        {page === 'sessions' && (
-          <div className="grid md:grid-cols-2 gap-6">
-            {[1,2,3,4].map((s) => (
-              <motion.div key={s} whileHover={{ scale: 1.03 }} className="bg-white/10 p-6 rounded-3xl backdrop-blur-xl border border-white/20 shadow-xl">
-                <h3 className="text-xl font-semibold mb-2">Session {s}</h3>
-                <p className="text-white/70">Speaker: TBD</p>
-                <p className="text-white/70">Venue: Main Hall</p>
-                <button className="mt-4 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl">
+      {/* SESSIONS */}
+      {page === "sessions" && (
+        <div style={styles.grid}>
+          {sessions.map((session, index) => {
+            const percent =
+              (session.registered / session.capacity) * 100
+
+            return (
+              <div key={index} style={styles.card}>
+                <h3>{session.title}</h3>
+                <p>Speaker: {session.speaker}</p>
+                <p>Venue: {session.venue}</p>
+
+                <div style={styles.progressBar}>
+                  <div
+                    style={{
+                      ...styles.progressFill,
+                      width: percent + "%",
+                    }}
+                  />
+                </div>
+
+                <p>
+                  {session.registered}/{session.capacity} Registered
+                </p>
+
+                <button
+                  onClick={() => registerSession(session.id)}
+                  disabled={session.registered >= session.capacity}
+                  style={styles.registerBtn}
+                >
                   Register
                 </button>
-              </motion.div>
-            ))}
-          </div>
-        )}
-
-        {page === 'announcements' && (
-          <div className="space-y-4">
-            <div className="bg-yellow-500/20 border border-yellow-400/40 p-5 rounded-2xl">
-              Opening ceremony begins at 9:00 AM in the Auditorium.
-            </div>
-          </div>
-        )}
-
-        {page === 'team' && (
-          <div className="grid md:grid-cols-3 gap-6">
-            {["Chair", "Coordinator", "Tech Lead"].map((role) => (
-              <div key={role} className="bg-white/10 p-6 rounded-3xl text-center backdrop-blur-xl">
-                <div className="w-24 h-24 bg-white/20 rounded-full mx-auto mb-4"></div>
-                <h3 className="font-semibold">{role}</h3>
               </div>
-            ))}
-          </div>
-        )}
+            )
+          })}
+        </div>
+      )}
 
-        {page === 'profile' && (
-          <div className="bg-white/10 p-8 rounded-3xl backdrop-blur-xl max-w-md mx-auto text-center">
-            <div className="w-28 h-28 bg-white/20 rounded-full mx-auto mb-4"></div>
-            <p className="mb-6">Logged in as {user.email}</p>
-            <button onClick={logout} className="px-6 py-2 bg-red-500 rounded-xl">Logout</button>
-          </div>
-        )}
-      </div>
+      {/* ANNOUNCEMENTS */}
+      {page === "announcements" && (
+        <div style={styles.page}>
+          <h2>Latest Announcements</h2>
+          {announcements.map((a, i) => (
+            <div key={i} style={styles.announcement}>
+              {a.message}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* TEAM */}
+      {page === "team" && (
+        <div style={styles.page}>
+          <h2>Organising Team</h2>
+          <p>Team data can be connected to Google Sheets next.</p>
+        </div>
+      )}
+
+      {/* PROFILE */}
+      {page === "profile" && (
+        <div style={styles.page}>
+          <h2>Your Profile</h2>
+          <input
+            type="file"
+            onChange={(e) =>
+              setProfilePic(URL.createObjectURL(e.target.files[0]))
+            }
+          />
+          {profilePic && (
+            <img src={profilePic} style={styles.profileImg} />
+          )}
+          <button onClick={() => alert("Logged out")}>
+            Logout
+          </button>
+        </div>
+      )}
     </div>
   )
+}
+
+const styles = {
+  container: {
+    fontFamily: "Arial",
+    background: "#f4f6f9",
+    minHeight: "100vh",
+  },
+  navbar: {
+    background: "#111827",
+    color: "white",
+    padding: "15px",
+    display: "flex",
+    justifyContent: "space-between",
+  },
+  page: {
+    padding: "40px",
+  },
+  banner: {
+    width: "100%",
+    borderRadius: "12px",
+    marginBottom: "20px",
+  },
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))",
+    gap: "20px",
+    padding: "40px",
+  },
+  card: {
+    background: "white",
+    padding: "20px",
+    borderRadius: "12px",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+  },
+  progressBar: {
+    background: "#e5e7eb",
+    height: "8px",
+    borderRadius: "10px",
+    marginTop: "10px",
+  },
+  progressFill: {
+    background: "#3b82f6",
+    height: "8px",
+    borderRadius: "10px",
+  },
+  registerBtn: {
+    marginTop: "10px",
+    padding: "8px 12px",
+    background: "#111827",
+    color: "white",
+    border: "none",
+    borderRadius: "8px",
+    cursor: "pointer",
+  },
+  announcement: {
+    background: "white",
+    padding: "15px",
+    marginBottom: "10px",
+    borderRadius: "8px",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+  },
+  profileImg: {
+    marginTop: "20px",
+    width: "120px",
+    borderRadius: "50%",
+  },
 }
